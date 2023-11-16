@@ -1,0 +1,119 @@
+import csv
+import matplotlib.pyplot as plt
+
+class Vermaling:
+    def __init__(self, navn, stasjon, str_dato, snodybde, nedbor, temperatur, skydekke, vindhastighet):
+        self.navn = navn
+        self.stasjon = stasjon
+        self.dato = str_dato
+        self.snodybde = snodybde
+        self.nedbor = nedbor
+        self.temperatur = temperatur
+        self.skydekke = skydekke
+        self.vindhastighet = vindhastighet
+
+def function(listen, maalepunkt):
+    teller = 0
+    for verdi in listen:
+        if verdi >= maalepunkt:
+            teller += 1
+    return teller
+
+vermalinger = []
+
+with open("snoedybder_vaer_en_stasjon_dogn.csv", "r") as csvfile:
+    csvreader = csv.reader(csvfile, delimiter=';')
+    data = list(csvreader)
+
+header = data[0]
+data = data[1:]
+
+data_obj = []
+for rad in data:
+    data_obj.append(Vermaling(rad[0], rad[1], rad[2], rad[3], rad[4], rad[5], rad[6], rad[7]))
+
+aarstall = 1980
+aarene = []
+skiføre_dager_periode = []
+
+for j in range(41):
+    skiføre_dager_per_dag = []
+
+    for i in range(len(data_obj)):
+        try:
+            year = int(data_obj[i].dato[6:10])
+            month = int(data_obj[i].dato[3:5])
+            
+            
+            if (year == aarstall and 10 <= month <= 12) or (year == aarstall + 1 and 1 <= month <= 6):
+                sn = float(data_obj[i].snodybde)
+                
+                
+                if sn >= 20:
+                    skiføre_dager_per_dag.append(sn)
+                    
+        except (ValueError, IndexError):
+            continue
+
+    if len(skiføre_dager_per_dag) >= 1:  
+        skiføre_dager_periode.append(len(skiføre_dager_per_dag))
+        aarene.append(aarstall)
+
+    aarstall += 1
+sesong = []
+
+
+for i in range(len(aarene)):
+    sesong.append({f"{aarene[i]}-{aarene[i]+1}": skiføre_dager_periode[i]})
+
+#Denne funksjonen beregner trenden for skidager per år
+def trend_data(x_liste, y_liste):
+    x_snitt = sum(x_liste) / len(x_liste)
+    y_snitt = sum(y_liste) / len(y_liste)  # Bruk len(y_liste) for antall elementer i y-listen
+    
+    sum_teller = 0.0
+    sum_nevner = 0.0
+
+    for i in range(len(x_liste)):
+        sum_teller += (x_liste[i] - x_snitt) * (y_liste[i] - y_snitt)
+        sum_nevner += (x_liste[i] - x_snitt) ** 2
+
+    a = sum_teller / sum_nevner
+    b = y_snitt - a * x_snitt
+
+    return a, b
+
+resultat = trend_data(aarene, skiføre_dager_periode)
+print("Trendkoeffisienter (stigningstall og konstantledd):", resultat)
+
+#Denne koden lager en scatter plot med en trendlinje for skiføre dager per år
+a, b = trend_data(aarene, skiføre_dager_periode)
+
+plt.scatter(aarene, skiføre_dager_periode, label="Data")
+
+trend_linje = [a * x + b for x in aarene]
+plt.plot(aarene, trend_linje, color="red", label="Trendlinje")
+
+plt.xlabel("År")
+plt.ylabel("Skiføre dager")
+plt.title("Trenden til skiføre dager per år")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+
+
+plt.figure(figsize=(10, 6)) 
+
+#Denne kode lager ett linje diagram over antall ski dager per år.
+plt.plot(aarene, skiføre_dager_periode, marker='o', linestyle='-')
+
+plt.xlabel("Årstall for skisesongen")
+plt.ylabel("Antall dager med skiføre (20cm snø eller mer)")
+plt.title("Antall dager med skiføre per skisesong")
+
+
+plt.grid(True)  
+plt.xticks(aarene)  
+plt.tight_layout()  
+plt.show()
